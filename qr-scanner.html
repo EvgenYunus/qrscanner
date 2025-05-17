@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Сканер QR-кодов (интеграция с Google Apps Script)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body { font-family: Arial,sans-serif; background: #f5f5f5; margin: 0; padding: 0; text-align: center; }
+    .container { margin: 30px auto; background: #fff; max-width: 400px; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.12);}
+    #qr-reader { margin: 0 auto 15px auto; width: 100%; max-width: 340px; }
+    h1 { font-size: 20px; }
+    .status { margin-bottom: 15px; padding: 10px; border-radius: 6px; }
+    .status-success { background: #e6f4ea; color: #137333;}
+    .status-error { background: #fce8e6; color: #c5221f;}
+    .link { display: block; margin-top: 15px; color: #4285f4;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Сканер QR-кодов</h1>
+    <p>Наведите камеру на QR-код</p>
+    <div id="qr-reader"></div>
+    <div id="scan-status" class="status"></div>
+    <a id="manual-link" href="#" class="link" style="display:none;">Ввести вручную</a>
+  </div>
+  <script>
+    // Адрес вашего WebApp (замените на свой!):
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzEJFVT384aqcCvhpRLTcIYt1Pt9YesFC4EOcpdHvSTLe_7DCOR930bzUedY8dVvUFwcQ/exec";
+
+    const scanStatus = document.getElementById('scan-status');
+    function showStatus(message, type) {
+      scanStatus.textContent = message;
+      scanStatus.className = 'status status-' + type;
+    }
+
+    function onScanSuccess(decodedText) {
+      showStatus("Готово! Перенаправляем...", "success");
+      setTimeout(() => {
+        window.location.href = WEBAPP_URL + encodeURIComponent(decodedText);
+      }, 1000);
+    }
+    function onScanFailure(error) {
+      // Можно показывать ошибку, если сканирование длится долго
+    }
+
+    // QR-код
+    let html5QrCode = new Html5Qrcode("qr-reader");
+    Html5Qrcode.getCameras().then(cameras => {
+      let camId = cameras.find(cam => /back|environment|rear/i.test(cam.label))?.id || cameras[0].id;
+      html5QrCode.start(
+        { deviceId: { exact: camId } },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess,
+        onScanFailure
+      );
+    }).catch(err => {
+      showStatus("Нет доступа к камере! Проверьте разрешения в браузере.", "error");
+      document.getElementById('manual-link').style.display = 'block';
+      document.getElementById('manual-link').onclick = function() {
+        window.location.href = WEBAPP_URL;
+      }
+    });
+  </script>
+</body>
+</html>
